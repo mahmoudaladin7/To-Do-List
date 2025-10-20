@@ -3,6 +3,8 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { prisma } from "./db/client";
+import { userRouter } from "./modules/users/user.routes";
+import { basicAuth } from "./middleware/basicAuth";
 
 export const app = express();
 
@@ -14,6 +16,9 @@ app.use(helmet());
 
 // Logs each request (method, URL, status, time)
 app.use(morgan("dev"));
+
+// Return 201 or 409
+app.use("/api/v1/users", userRouter);
 
 // a tiny liveness probe
 app.get("/health", (_req, res) => {
@@ -29,4 +34,10 @@ app.get("/db-check", async (_req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// 401 if No Authorization Else you get Content
+app.get("/api/v1/protected/ping", basicAuth, (req, res) => {
+  const user = (req as any).user;
+  res.json({ ok: true, user });
 });
