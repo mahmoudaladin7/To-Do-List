@@ -9,6 +9,7 @@ A TypeScript REST API for managing to-do lists built with Express and Prisma. It
 - User registration flow that validates input (Zod), enforces unique emails, and stores hashed passwords.
 - Basic Auth middleware that authenticates requests by email/password.
 - Health endpoints for service liveness (`/health`) and database connectivity (`/db-check`).
+- Authenticated task management: create, list (with filters), update, and delete to-do items tied to a user.
 
 ## Project Structure
 
@@ -21,10 +22,15 @@ A TypeScript REST API for managing to-do lists built with Express and Prisma. It
 |   |   |-- basicAuth.ts     # Basic Auth guard reused by protected routes
 |   |-- modules/
 |       |-- users/
-|           |-- user.routes.ts
-|           |-- users.controller.ts
-|           |-- users.schema.ts
-|           |-- users.services.ts
+|       |   |-- user.routes.ts
+|       |   |-- users.controller.ts
+|       |   |-- users.schema.ts
+|       |   |-- users.services.ts
+|       |-- tasks/
+|           |-- task.routes.ts
+|           |-- task.controller.ts
+|           |-- task.schema.ts
+|           |-- task.service.ts
 |-- prisma/
 |   |-- schema.prisma        # Database schema (User + Task models)
 |-- .env.example             # Environment variable template
@@ -121,6 +127,32 @@ A TypeScript REST API for managing to-do lists built with Express and Prisma. It
 
   Missing or invalid credentials produce a `401 Unauthorized` response and a `WWW-Authenticate` challenge header.
 
+### Task Management (Basic Auth required)
+
+- `GET /api/v1/tasks/__probe` – Quick check that the task router is mounted and that Basic Auth succeeded. Returns `{ "mounted": true, "user": { ... } }`.
+- `POST /api/v1/tasks` – Create a task for the authenticated user.
+- `GET /api/v1/tasks` – List tasks with optional filters (`status`, `search`, `sort`, `order`, `page`, `limit`).
+- `GET /api/v1/tasks/:id` – Fetch a single task owned by the authenticated user.
+- `PATCH /api/v1/tasks/:id` – Update task fields (title, description, status, dueDate).
+- `DELETE /api/v1/tasks/:id` – Remove a task.
+
+Request body schema for creating tasks:
+
+```json
+{
+  "title": "Pay bills",
+  "description": "Electricity and internet",
+  "status": "pending",
+  "dueDate": "2025-10-21T18:30:00.000Z"
+}
+```
+
+Notes:
+
+- `status` must be one of `pending`, `in_progress`, or `done`.
+- `dueDate` must be an ISO 8601 timestamp; omit or set `null` to leave it unset.
+- Query parameters for listing are validated and paginated; the default sort is most recent first.
+
 ## Database Schema
 
 Prisma models define `User` records and `Task` entities associated to each user. Tasks include status enums (`pending`, `in_progress`, `done`) and optional due dates. Check `prisma/schema.prisma` if you plan to extend the API with task CRUD endpoints.
@@ -129,10 +161,12 @@ Prisma models define `User` records and `Task` entities associated to each user.
 
 - Prisma client is generated into `src/generated/prisma`. Re-generate after schema changes with `npx prisma generate`.
 - Passwords are hashed with bcrypt and never returned by the API.
-- Validation is powered by Zod (`users.schema.ts`).
+- Validation is powered by Zod across modules (`users.schema.ts`, `task.schema.ts`).
+- All task routes are behind Basic Auth. Make sure your REST client actually sends the `Authorization` header; in Postman, prefer the "Authorization" tab set to "Basic Auth" so the header is present on each request.
+- `npm run dev` uses nodemon; when it prints `clean exit - waiting for changes before restart`, the process is still running and watching files.
 
 ## Next Steps
 
-- Build task CRUD routes under `src/modules/tasks`.
-- Add automated tests (unit/integration) to lock down the registration flow and auth middleware.
+- Add automated tests (unit/integration) to cover the auth middleware and task workflows.
+- Implement role-based access or token-based authentication if Basic Auth isn’t sufficient.
 - Containerize the service with Docker for easier deployment.
