@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { prisma } from "./db/client";
 import { userRouter } from "./modules/users/user.routes";
+import { taskRouter } from "./modules/tasks/task.routes";
 import { basicAuth } from "./middleware/basicAuth";
 
 export const app = express();
@@ -19,6 +20,7 @@ app.use(morgan("dev"));
 
 // Return 201 or 409
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/tasks", taskRouter);
 
 // a tiny liveness probe
 app.get("/health", (_req, res) => {
