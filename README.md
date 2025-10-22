@@ -1,6 +1,11 @@
-# To-Do API (Node.js + Express + Prisma + PostgreSQL)
+﻿# To-Do API (Node.js + Express + Prisma + PostgreSQL)
 
-A TypeScript REST API for managing to-do lists built with Express and Prisma. It handles user registration, enforces credential security with bcrypt, offers Basic Auth middleware for protected endpoints, and includes health checks to monitor the service and database.
+A TypeScript REST API for managing to-do lists built with Express and Prisma. It handles user registration, enforces credential security with bcrypt, offers Basic Auth middleware for protected endpoints, and includes health checks to monitor the service and database. Automated integration tests (Vitest + Supertest + Postgres) cover the core user flows.
+
+## Status
+
+- Complete: backend feature set and automated tests
+- Upcoming: companion frontend UI planned for a future iteration
 
 ## Features
 
@@ -78,6 +83,24 @@ A TypeScript REST API for managing to-do lists built with Express and Prisma. It
 
    The API will be available at `http://localhost:3000`.
 
+## Testing
+
+Vitest drives the integration suite against a dedicated Postgres database. The helper at `src/test/helpers/db.ts` applies migrations automatically and truncates tables between specs.
+
+1. Create `.env.test` (copy of `.env.example` and point `DATABASE_URL` to a clean test database). Set `PORT=0` so Supertest binds to an ephemeral port.
+
+   ```bash
+   cp .env.example .env.test
+   ```
+
+2. Run the tests with coverage:
+
+   ```bash
+   npm test
+   ```
+
+   Coverage artifacts are written to `coverage/`; delete the folder for a fresh report.
+
 ## Useful Scripts
 
 - `npm run dev` - Start the API with `ts-node` + `nodemon`.
@@ -129,12 +152,12 @@ A TypeScript REST API for managing to-do lists built with Express and Prisma. It
 
 ### Task Management (Basic Auth required)
 
-- `GET /api/v1/tasks/__probe` – Quick check that the task router is mounted and that Basic Auth succeeded. Returns `{ "mounted": true, "user": { ... } }`.
-- `POST /api/v1/tasks` – Create a task for the authenticated user.
-- `GET /api/v1/tasks` – List tasks with optional filters (`status`, `search`, `sort`, `order`, `page`, `limit`).
-- `GET /api/v1/tasks/:id` – Fetch a single task owned by the authenticated user.
-- `PATCH /api/v1/tasks/:id` – Update task fields (title, description, status, dueDate).
-- `DELETE /api/v1/tasks/:id` – Remove a task.
+- `GET /api/v1/tasks/__probe` - Quick check that the task router is mounted and that Basic Auth succeeded. Returns `{ "mounted": true, "user": { ... } }`.
+- `POST /api/v1/tasks` - Create a task for the authenticated user.
+- `GET /api/v1/tasks` - List tasks with optional filters (`status`, `search`, `sort`, `order`, `page`, `limit`).
+- `GET /api/v1/tasks/:id` - Fetch a single task owned by the authenticated user.
+- `PATCH /api/v1/tasks/:id` - Update task fields (title, description, status, dueDate).
+- `DELETE /api/v1/tasks/:id` - Remove a task.
 
 Request body schema for creating tasks:
 
@@ -152,10 +175,13 @@ Notes:
 - `status` must be one of `pending`, `in_progress`, or `done`.
 - `dueDate` must be an ISO 8601 timestamp; omit or set `null` to leave it unset.
 - Query parameters for listing are validated and paginated; the default sort is most recent first.
-
 ## Database Schema
 
 Prisma models define `User` records and `Task` entities associated to each user. Tasks include status enums (`pending`, `in_progress`, `done`) and optional due dates. Check `prisma/schema.prisma` if you plan to extend the API with task CRUD endpoints.
+
+## API Docs
+
+Swagger UI is available at `http://localhost:3000/docs` and is generated from `src/docs/openapi.ts`. Start the server (`npm run dev` or `npm start`) and open the URL to explore endpoints and send interactive requests.
 
 ## Development Notes
 
@@ -167,6 +193,9 @@ Prisma models define `User` records and `Task` entities associated to each user.
 
 ## Next Steps
 
-- Add automated tests (unit/integration) to cover the auth middleware and task workflows.
-- Implement role-based access or token-based authentication if Basic Auth isn’t sufficient.
+- Build the planned frontend client and integrate it with the REST API.
+- Expand authentication beyond Basic Auth (e.g., session tokens or OAuth).
 - Containerize the service with Docker for easier deployment.
+
+
+
