@@ -6,8 +6,22 @@ import { prisma } from "./db/client";
 import { userRouter } from "./modules/users/user.routes";
 import { taskRouter } from "./modules/tasks/task.routes";
 import { basicAuth } from "./middleware/basicAuth";
+import { errorHandler } from "./middleware/errorHandler";
+import rateLimit from "express-rate-limit";
+import cors from "cors";
+import swaggerUi from "swagger-ui-express";
+import { openapiSpec } from "./docs/openapi";
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export const app = express();
+// For all API routes
+app.use("/api/", apiLimiter);
 
 // Parses application/json bodies into req.body
 app.use(express.json());
@@ -21,6 +35,8 @@ app.use(morgan("dev"));
 // Return 201 or 409
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tasks", taskRouter);
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 // a tiny liveness probe
 app.get("/health", (_req, res) => {
@@ -43,3 +59,16 @@ app.get("/api/v1/protected/ping", basicAuth, (req, res) => {
   const user = (req as any).user;
   res.json({ ok: true, user });
 });
+
+//  Allow  frontend and tools to call the API.
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:3001"],
+    credentials: false,
+  })
+);
+
+// 404 for unknown routes
+app.use((_req, res) => res.status(404).json({ error: "Route not found" }));
+// Global error handler
+app.use(errorHandler);
